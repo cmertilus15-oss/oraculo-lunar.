@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oráculo Místico | Cata Lunar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Quicksand:wght@300;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'lunar-black': '#050505',
+                        'lunar-gold': '#d4af37',
+                        'lunar-deep': '#0f172a',
+                    },
+                    fontFamily: {
+                        'cinzel': ['Cinzel', 'serif'],
+                        'quicksand': ['Quicksand', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #050505;
+            background-image: radial-gradient(circle at center, #1e293b 0%, #050505 100%);
+            overflow-x: hidden;
+        }
+
+        .oracle-card {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(212, 175, 55, 0.05);
+        }
+
+        .gold-glow {
+            text-shadow: 0 0 15px rgba(212, 175, 55, 0.6);
+        }
+
+        .float { animation: floating 6s ease-in-out infinite; }
+        @keyframes floating {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(2deg); }
+        }
+
+        #canvas-stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .fade-in { animation: fadeIn 1.5s ease-out forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #d4af37; border-radius: 10px; }
+    </style>
+</head>
+<body class="text-gray-200 font-quicksand min-h-screen flex flex-col items-center justify-center p-4">
+
+    <canvas id="canvas-stars"></canvas>
+
+    <main class="relative z-10 w-full max-w-2xl fade-in">
+        <!-- Logo/Header -->
+        <div class="text-center mb-8">
+            <div class="inline-block p-4 rounded-full border border-lunar-gold/20 mb-4 bg-black/50 float">
+                <i class="fa-solid fa-moon text-5xl text-lunar-gold gold-glow"></i>
+            </div>
+            <h1 class="font-cinzel text-4xl md:text-5xl font-black text-lunar-gold gold-glow tracking-widest mb-2">ORÁCULO LUNAR</h1>
+            <p class="font-cinzel text-sm tracking-[0.4em] text-lunar-gold/60 uppercase">Cata Lunar • Alquimia Gastronómica</p>
+        </div>
+
+        <!-- Oracle Box -->
+        <div class="oracle-card p-8 md:p-12 rounded-3xl relative overflow-hidden group">
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-lunar-gold/5 rounded-full blur-3xl"></div>
+            
+            <div id="input-view">
+                <p class="text-center text-lg mb-8 italic opacity-80 leading-relaxed">
+                    "Escribe tu sentir actual y permite que el micelio ancestral dicte tu destino culinario para esta noche..."
+                </p>
+                
+                <div class="space-y-6">
+                    <div class="relative">
+                        <textarea id="moodInput" 
+                            class="w-full bg-black/40 border border-lunar-gold/30 rounded-xl p-5 text-white focus:border-lunar-gold focus:ring-1 focus:ring-lunar-gold outline-none transition-all resize-none font-light tracking-wide text-lg h-32"
+                            placeholder="Ej: Siento que el cansancio me nubla, pero busco una chispa de luz..."></textarea>
+                    </div>
+
+                    <button id="revealBtn" onclick="consultarOraculo()" 
+                        class="w-full bg-lunar-gold text-lunar-black font-cinzel font-bold text-lg py-4 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 shadow-lg shadow-lunar-gold/20">
+                        <i class="fa-solid fa-wand-sparkles"></i> REVELAR MI DESTINO
+                    </button>
+                </div>
+            </div>
+
+            <!-- Result View (Hidden by default) -->
+            <div id="result-view" class="hidden text-center space-y-8 py-4">
+                <div class="relative inline-block">
+                    <div class="absolute inset-0 blur-2xl bg-lunar-gold/20 animate-pulse rounded-full"></div>
+                    <i class="fa-solid fa-hand-sparkles text-6xl text-lunar-gold relative"></i>
+                </div>
+
+                <div class="space-y-4">
+                    <h3 class="font-cinzel text-2xl text-lunar-gold uppercase tracking-widest">La Profecía</h3>
+                    <p id="oracleText" class="text-xl italic font-light leading-relaxed text-white px-4"></p>
+                </div>
+
+                <div class="flex flex-col items-center gap-4 pt-4">
+                    <button onclick="playOracleAudio()" id="audioBtn" class="group flex items-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 px-6 py-3 rounded-full transition-all">
+                        <i class="fa-solid fa-volume-high text-lunar-gold group-hover:scale-110 transition-transform"></i>
+                        <span class="text-sm font-cinzel tracking-wider uppercase">Escuchar la voz</span>
+                    </button>
+                    <div id="audioLoading" class="hidden text-xs text-lunar-gold/50 animate-pulse">Invocando energías...</div>
+                    
+                    <button onclick="resetOraculo()" class="text-white/40 hover:text-lunar-gold text-xs font-cinzel uppercase tracking-widest pt-6 border-t border-white/5 w-full">
+                        Consultar de nuevo
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="mt-12 text-center text-white/30 text-[10px] tracking-[3px] uppercase">
+            Propiedad de Cata Lunar • <span id="year"></span>
+        </footer>
+    </main>
+
+    <script>
+        const apiKey = ""; // La plataforma gestiona la llave
+        let oracleSpeechData = null;
+        document.getElementById('year').innerText = new Date().getFullYear();
+
+        // Configuración de Profecías
+        const profecias = [
+            {
+                keys: ['triste', 'cansado', 'bajo', 'mal', 'solo', 'agotado'],
+                text: "El micelio ha detectado tu sombra. Te espera un Risotto de Hongos Silvestres para anclar tu espíritu y un Elixir de Saúco Tibio para reconfortar tu centro.",
+                voice: "Say in a very deep, comforting, slow mystical voice: El micelio ha detectado tu sombra. Te espera un Risotto de Hongos Silvestres para anclar tu espíritu y un Elixir de Saúco Tibio para reconfortar tu centro."
+            },
+            {
+                keys: ['feliz', 'alegre', 'bien', 'emocionado', 'amor', 'fiesta'],
+                text: "Tu aura brilla con la intensidad de la luna llena. Debes honrar esta luz con el Tomahawk Galáctico y un Cóctel Moonlight de lavanda y plata.",
+                voice: "Say in an energetic, ethereal, positive voice: Tu aura brilla con la intensidad de la luna llena. Debes honrar esta luz con el Tomahawk Galáctico y un Cóctel Moonlight de lavanda y plata."
+            },
+            {
+                keys: ['aventura', 'curioso', 'raro', 'nuevo', 'hambre'],
+                text: "Las estrellas se alinean hacia lo desconocido. El destino te entrega el Sashimi Ancestral con Pitahaya Negra y una infusión de Polvo de Estrellas Ahumado.",
+                voice: "Say in a mysterious, whispering, ancient voice: Las estrellas se alinean hacia lo desconocido. El destino te entrega el Sashimi Ancestral con Pitahaya Negra y una infusión de Polvo de Estrellas Ahumado."
+            }
+        ];
+
+        const defaultP = {
+            text: "El Oráculo te observa con enigmas. Tu ritual comenzará con Tapas Fungi y un Vino Ancestral de nuestra cava profunda. Mantén los ojos abiertos.",
+            voice: "Say in a mysterious, neutral, divine voice: El Oráculo te observa con enigmas. Tu ritual comenzará con Tapas Fungi y un Vino Ancestral de nuestra cava profunda. Mantén los ojos abiertos."
+        };
+
+        async function consultarOraculo() {
+            const input = document.getElementById('moodInput').value.trim().toLowerCase();
+            if (!input) return;
+
+            const btn = document.getElementById('revealBtn');
+            const inputView = document.getElementById('input-view');
+            const resultView = document.getElementById('result-view');
+            const textEl = document.getElementById('oracleText');
+
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> LEYENDO TU ENERGÍA...`;
+
+            let seleccion = profecias.find(p => p.keys.some(k => input.includes(k))) || defaultP;
+
+            // Simular lectura mística
+            setTimeout(async () => {
+                inputView.classList.add('hidden');
+                resultView.classList.remove('hidden');
+                textEl.innerText = seleccion.text;
+                
+                await generarVoz(seleccion.voice);
+            }, 2000);
+        }
+
+        async function generarVoz(prompt) {
+            const loader = document.getElementById('audioLoading');
+            loader.classList.remove('hidden');
+            
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: {
+                            responseModalities: ["AUDIO"],
+                            speechConfig: {
+                                voiceConfig: {
+                                    prebuiltVoiceConfig: { voiceName: "Charon" }
+                                }
+                            }
+                        }
+                    })
+                });
+
+                const result = await response.json();
+                const pcmData = result.candidates[0].content.parts[0].inlineData.data;
+                oracleSpeechData = pcmToWav(pcmData, 24000);
+                loader.classList.add('hidden');
+            } catch (error) {
+                console.error("TTS Error:", error);
+                loader.innerText = "La voz está bloqueada por el eclipse.";
+            }
+        }
+
+        function playOracleAudio() {
+            if (oracleSpeechData) {
+                const blob = new Blob([oracleSpeechData], { type: 'audio/wav' });
+                const url = URL.createObjectURL(blob);
+                const audio = new Audio(url);
+                audio.play();
+            }
+        }
+
+        function resetOraculo() {
+            document.getElementById('input-view').classList.remove('hidden');
+            document.getElementById('result-view').classList.add('hidden');
+            document.getElementById('moodInput').value = "";
+            oracleSpeechData = null;
+        }
+
+        // --- Estrellas de Fondo (Canvas) ---
+        const canvas = document.getElementById('canvas-stars');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+
+        function initStars() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            stars = [];
+            for (let i = 0; i < 150; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 1.5,
+                    opacity: Math.random(),
+                    speed: Math.random() * 0.005
+                });
+            }
+        }
+
+        function drawStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            stars.forEach(s => {
+                s.opacity += s.speed;
+                if (s.opacity > 1 || s.opacity < 0) s.speed *= -1;
+                ctx.fillStyle = `rgba(212, 175, 55, ${s.opacity})`;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            requestAnimationFrame(drawStars);
+        }
+
+        window.addEventListener('resize', initStars);
+        initStars();
+        drawStars();
+
+        // Convertidor PCM a WAV
+        function pcmToWav(base64Pcm, sampleRate) {
+            const binaryString = window.atob(base64Pcm);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
+            const buffer = new ArrayBuffer(44 + bytes.length);
+            const view = new DataView(buffer);
+            const writeString = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+            writeString(0, 'RIFF');
+            view.setUint32(4, 32 + bytes.length, true);
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, 1, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            writeString(36, 'data');
+            view.setUint32(40, bytes.length, true);
+            const pcmU16 = new Uint16Array(bytes.buffer);
+            for (let i = 0; i < pcmU16.length; i++) view.setUint16(44 + i * 2, pcmU16[i], true);
+            return buffer;
+        }
+    </script>
+</body>
+</html>
